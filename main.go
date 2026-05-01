@@ -81,7 +81,7 @@ func checkPageSpeedWithRetry(apiKey, pageURL string, maxRetries int, results cha
 
 	for attempt := 1; attempt <= maxRetries; attempt++ {
 		// Use longer timeout for slower servers (EFS can cause delays)
-		apiURL := fmt.Sprintf("https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=%s&key=%s", encodedURL, apiKey)
+		apiURL := fmt.Sprintf("https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=%s&key=%s&category=performance&category=accessibility&category=best-practices&category=seo", encodedURL, apiKey)
 
 		client := &http.Client{Timeout: 60 * time.Second} // Increased timeout for slow EFS
 		resp, err := client.Get(apiURL)
