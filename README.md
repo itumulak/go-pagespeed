@@ -19,13 +19,13 @@ A Go-based tool that automatically analyzes all pages of a WordPress site using 
 ### BASIC USAGE
 
 ```bash
-go run . https://your-wordpress-site.com --key YOUR_API_KEY
+go run . --key YOUR_API_KEY https://your-wordpress-site.com 
 ```
 
 ### With Custom Rate Limit
 
 ```bash
-go run . https://your-wordpress-site.com --key YOUR_API_KEY --rps 2
+go run . --key YOUR_API_KEY --rps 2 https://your-wordpress-site.com 
 ```
 
 ### Command Line Options
