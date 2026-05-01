@@ -40,13 +40,13 @@ go run . https://your-wordpress-site.com --key YOUR_API_KEY --rps 2
 
 ```bash
 # Analyze with default settings (4 requests/second)
-go run . https://example.com --key abc123xyz
+go run . --key PAGESPEED_API_KEY REPLACE_WITH_WORDPRESS_URL
 
 # Slower rate for API quota conservation
-go run . https://example.com --key abc123xyz --rps 2
+go run . --key PAGESPEED_API_KEY --rps 2 REPLACE_WITH_WORDPRESS_URL
 
 # Analyze specific WordPress REST API endpoint
-go run . https://example.com/wp-json/wp/v2/pages --key abc123xyz
+go run . --key PAGESPEED_API_KEY REPLACE_WITH_WORDPRESS_JSON_URL
 ```
 
 ### Output Example
