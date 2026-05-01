@@ -206,15 +206,6 @@ func displayResult(result PageResult) {
 	fmt.Println()
 }
 
-func getScoreEmoji(score float64) string {
-	if score >= 0.9 {
-		return "🟢"
-	} else if score >= 0.5 {
-		return "🟠"
-	}
-	return "🔴"
-}
-
 func main() {
 	apiKey := "AIzaSyBub-bWKfnlrAWOhoPYazPclJsKZBBjguQ"
 	wpURL := "http://staging.avocadova.com/wp-json/wp/v2/pages"
