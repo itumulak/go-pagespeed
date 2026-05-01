@@ -2,10 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -56,6 +58,40 @@ type PageResult struct {
 	RetryCount int
 }
 
+// RateLimiter controls the request rate
+type RateLimiter struct {
+	ticker *time.Ticker
+	mu     sync.Mutex
+}
+
+func NewRateLimiter(requestsPerSecond int) *RateLimiter {
+	interval := time.Second / time.Duration(requestsPerSecond)
+	return &RateLimiter{
+		ticker: time.NewTicker(interval),
+	}
+}
+
+func (r *RateLimiter) Wait() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	<-r.ticker.C
+}
+
+func (r *RateLimiter) Stop() {
+	r.ticker.Stop()
+}
+
+func buildWPAPIURL(base string) string {
+	base = strings.TrimRight(base, "/")
+
+	// if user already passed full wp-JSON URL, use it directly
+	if strings.Contains(base, "/wp-json/") {
+		return base
+	}
+
+	return base + "/wp-json/wp/v2/pages?per_page=100"
+}
+
 func fetchWordPressPages(wpURL string) ([]WordPressPage, error) {
 	client := &http.Client{Timeout: 30 * time.Second}
 	resp, err := client.Get(wpURL)
@@ -74,12 +110,15 @@ func fetchWordPressPages(wpURL string) ([]WordPressPage, error) {
 	return pages, err
 }
 
-func checkPageSpeedWithRetry(apiKey, pageURL string, maxRetries int, results chan<- PageResult, wg *sync.WaitGroup) {
+func checkPageSpeedWithRetry(apiKey, pageURL string, maxRetries int, results chan<- PageResult, wg *sync.WaitGroup, rateLimiter *RateLimiter) {
 	defer wg.Done()
 
 	encodedURL := url.QueryEscape(pageURL)
 
 	for attempt := 1; attempt <= maxRetries; attempt++ {
+		// Wait for rate limiter before making request
+		rateLimiter.Wait()
+
 		// Use longer timeout for slower servers (EFS can cause delays)
 		apiURL := fmt.Sprintf("https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=%s&key=%s&category=performance&category=accessibility&category=best-practices&category=seo", encodedURL, apiKey)
 
@@ -207,12 +246,32 @@ func displayResult(result PageResult) {
 }
 
 func main() {
-	apiKey := "AIzaSyBub-bWKfnlrAWOhoPYazPclJsKZBBjguQ"
-	wpURL := "http://staging.avocadova.com/wp-json/wp/v2/pages"
+	apiKey := flag.String("key", "", "Google PageSpeed API Key (required)")
+	requestsPerSec := flag.Int("rps", 4, "Requests per second (default: 4)")
 	maxRetries := 3
+
+	flag.Parse()
+
+	if flag.NArg() < 1 {
+		fmt.Println("❌ Usage:")
+		fmt.Println("go run . <wordpress-url> --key YOUR_API_KEY [-rps 4]")
+		fmt.Println("\nExample:")
+		fmt.Println("go run . YOUR_WORDPRESS_URL --key YOUR_API_KEY --rps 4")
+		os.Exit(1)
+	}
+
+	baseURL := flag.Arg(0)
+
+	if *apiKey == "" {
+		fmt.Println("❌ Missing required --key")
+		os.Exit(1)
+	}
+
+	wpURL := buildWPAPIURL(baseURL)
 
 	fmt.Println("🚀 WordPress PageSpeed Analyzer")
 	fmt.Println("================================")
+	fmt.Printf("⚙️  Rate limit: %d requests per second\n", *requestsPerSec)
 	fmt.Println("Fetching WordPress pages...")
 
 	pages, err := fetchWordPressPages(wpURL)
@@ -224,6 +283,10 @@ func main() {
 	fmt.Printf("✅ Found %d pages\n", len(pages))
 	fmt.Println("Analyzing with PageSpeed Insights (up to 3 retries per page)...")
 
+	// Create rate limiter
+	rateLimiter := NewRateLimiter(*requestsPerSec)
+	defer rateLimiter.Stop()
+
 	// Create channels and wait group
 	results := make(chan PageResult, len(pages))
 	var wg sync.WaitGroup
@@ -234,7 +297,7 @@ func main() {
 	// Launch goroutines for each page
 	for _, page := range pages {
 		wg.Add(1)
-		go checkPageSpeedWithRetry(apiKey, page.Link, maxRetries, results, &wg)
+		go checkPageSpeedWithRetry(*apiKey, page.Link, maxRetries, results, &wg, rateLimiter)
 	}
 
 	// Close results channel when all goroutines complete
