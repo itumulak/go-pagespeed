@@ -73,8 +73,6 @@ Analyzing with PageSpeed Insights (up to 3 retries per page)...
 📊 Summary: Completed 25/25 pages in 2m15s
 ```
 
-### How It Works
-
 ## How It Works
 
 1. **Fetches WordPress Pages** - Uses WordPress REST API to get all pages
@@ -114,30 +112,30 @@ The tool's default 4 requests/second (240/minute) respects these limits.
 
 ### Troubleshooting
 
-*"Error fetching WordPress pages"*
+__"Error fetching WordPress pages"*__
 
 - Verify WordPress REST API is accessible
 - Check if the site URL is correct
 
-*"Google API error: QUOTA_EXCEEDED"*
+__"Google API error: QUOTA_EXCEEDED"*__
 
 - Reduce requests per second with --rps 2
 - Wait for quota to reset (usually next day)
 
-*Slow performance on large sites*
+__Slow performance on large sites__
 
 - Reduce --rps to avoid API timeouts
 - Consider analyzing in batches
 
-#### License
+### License
 
 MIT License
 
-#### Contributing
+### Contributing
 
 Contributions are welcome! Please submit pull requests or open issues for bugs and feature requests.
 
-#### Support
+### Support
 
 For issues or questions:
 
